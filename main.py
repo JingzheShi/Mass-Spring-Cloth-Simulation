@@ -71,7 +71,7 @@ def substep(h:ti.f32):
             system.velocity[i, j] += system.forces[i, j]*h
             vertices[i * N + j] = system.position[i, j]
             system.GroundCollision(i,j,0.0)
-            system.BallCollision(i,j,0.35,0.6,0.35,0.3)
+            system.BallCollision(i,j,0.32,0.6,0.32,0.3)
     #system.time += h
 
 window = ti.ui.Window("Taichi Cloth Simulation on GGUI", (1024, 1024),
@@ -82,11 +82,11 @@ scene = ti.ui.Scene()
 camera = ti.ui.Camera()
 
 ball_center = ti.Vector.field(3, dtype=float, shape=(1, ))
-ball_center[0] = [0.35, 0.6, 0.35]
+ball_center[0] = [0.32, 0.6, 0.32]
 
 while window.running:
-    for i in range(180):
-        substep(0.00007)
+    for i in range(90):
+        substep(0.000078)
     camera.position(0, 1.0, 3.0)
     camera.lookat(0.5, 1.0, 0.5)
     scene.set_camera(camera)
