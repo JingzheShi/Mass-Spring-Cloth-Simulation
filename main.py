@@ -1,5 +1,4 @@
 import taichi as ti
-import numpy as np
 from Objects import *
 
 ti.init(arch=ti.cpu)
@@ -8,11 +7,11 @@ N = 64
 position = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
 velocity = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
 forces = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
-k_s = 4e3
+k_s = 5e4
 gamma_s = 3e3
-k_d = 4e3 / ti.sqrt(2)
+k_d = 5e4 / ti.sqrt(2)
 gamma_d = 3e3 / ti.sqrt(2)
-k_b = 4e3/2
+k_b = 5e4/2
 gamma_b = 3e3/2
 
 num_triangles = (N - 1) * (N - 1) * 2
@@ -23,9 +22,8 @@ colors = ti.Vector.field(3, dtype=float, shape=N * N)
 # Initialize
 @ti.kernel
 def initialize():
-    for i in range(N):
-        for j in range(N):
-            position[i, j] = ti.Vector([i / float(N), 2.0, j/float(N)])
+    for i, j in ti.ndrange(N, N):
+            position[i, j] = ti.Vector([i / float(N) + ti.random()*0.005, 2.0 + ti.random()*0.005, j/float(N) + ti.random()*0.005])
             velocity[i, j] = ti.Vector([0.0, 0.0, 0.0])
             forces[i, j] = ti.Vector([0.0, 0.0, 0.0])
 
@@ -65,13 +63,13 @@ def substep(h:ti.f32):
     system.ApplyGravity()
     system.ApplySpring(k_s, gamma_s, k_d, gamma_d, k_b, gamma_b, 1 / float(N))
     system.ApplyDamping(6.0)
-    for i in range(N):
-        for j in range(N):
+    for i, j in ti.ndrange(N, N):
             system.position[i, j] += system.velocity[i, j]*h
             system.velocity[i, j] += system.forces[i, j]*h
             vertices[i * N + j] = system.position[i, j]
             system.GroundCollision(i,j,0.0)
-            system.BallCollision(i,j,0.32,0.6,0.32,0.3)
+            system.BallCollision(i,j,0.5,0.6,0.55,0.2)
+            system.PoleCollision_x(i,j,0.6,0.55,0.08)
     #system.time += h
 
 window = ti.ui.Window("Taichi Cloth Simulation on GGUI", (1024, 1024),
@@ -82,12 +80,17 @@ scene = ti.ui.Scene()
 camera = ti.ui.Camera()
 
 ball_center = ti.Vector.field(3, dtype=float, shape=(1, ))
-ball_center[0] = [0.32, 0.6, 0.32]
+ball_center[0] = [0.5, 0.6, 0.55]
+
+n=2000
+cylinder_center = ti.Vector.field(3, dtype=float, shape=(n, ))
+for i in range(n):
+    cylinder_center[i] = [1.5*i/n-0.3, 0.6, 0.55]
 
 while window.running:
-    for i in range(90):
-        substep(0.000078)
-    camera.position(0, 1.0, 3.0)
+    for i in range(50):
+        substep(0.00008)
+    camera.position(0.5, 1.0, 3.0)
     camera.lookat(0.5, 1.0, 0.5)
     scene.set_camera(camera)
 
@@ -97,6 +100,7 @@ while window.running:
                indices=indices,
                per_vertex_color=colors,
                two_sided=True)
-    scene.particles(ball_center, radius=0.3*0.93, color=(0.5, 0.42, 0.8))
+    scene.particles(ball_center, radius=0.2*0.94, color=(0.5, 0.42, 0.8))
+    scene.particles(cylinder_center, radius=0.08*0.92, color=(0.4, 0.62, 0.7))
     canvas.scene(scene)
     window.show()

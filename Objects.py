@@ -23,8 +23,7 @@ class ClothSystem:
 
     @ti.func
     def ApplySpring(self, k_s:ti.f32, gamma_s:ti.f32, k_d:ti.f32, gamma_d:ti.f32, k_b:ti.f32, gamma_b:ti.f32, l:ti.f32):
-        for i in range(self.number):
-            for j in range(self.number):
+        for i, j in ti.ndrange(self.number, self.number):
                 if(i>0):
                     self.forces[i, j] += (k_s*(ti.Vector.norm(self.position[i-1, j]-self.position[i, j])-l)+gamma_s*ti.Vector.dot(self.velocity[i-1, j]-self.velocity[i, j], self.position[i-1, j]-self.position[i, j])//ti.Vector.norm(self.position[i-1, j]-self.position[i, j]))*(self.position[i-1, j]-self.position[i, j])/ti.Vector.norm(self.position[i-1, j]-self.position[i, j])
                 if(i<self.number-1):
@@ -68,4 +67,18 @@ class ClothSystem:
         if(ti.Vector.norm(self.position[i, j] - center) <= r):
             self.position[i, j] = center + r*(self.position[i, j] - center)/ti.Vector.norm(self.position[i, j] - center)
             self.velocity[i, j] -= 1.5*ti.Vector.dot(self.velocity[i, j], self.position[i, j] - center)*(self.position[i, j] - center)/ti.Vector.norm(self.position[i, j] - center)
+
+    @ti.func
+    def PoleCollision_z(self, i:int, j:int, xc:ti.f32, yc:ti.f32, r:ti.f32):
+        if(ti.sqrt((self.position[i, j][0]-xc) * (self.position[i, j][0]-xc) + (self.position[i, j][1]-yc) * (self.position[i, j][1]-yc))<r):
+            self.position[i, j][0] = xc + r*ti.cos(ti.atan2(self.position[i, j][1]-yc, self.position[i, j][0]-xc))
+            self.position[i, j][1] = yc + r*ti.sin(ti.atan2(self.position[i, j][1]-yc, self.position[i, j][0]-xc))
+            self.velocity[i, j] -= 1.5*ti.Vector.dot(self.velocity[i, j], self.position[i, j] - ti.Vector([xc, yc, self.position[i, j][2]]))*(self.position[i, j] - ti.Vector([xc, yc, self.position[i, j][2]]))/ti.Vector.norm(self.position[i, j] - ti.Vector([xc, yc, self.position[i, j][2]]))
+
+    @ti.func
+    def PoleCollision_x(self, i:int, j:int, yc:ti.f32, zc:ti.f32, r:ti.f32):
+        if(ti.sqrt((self.position[i, j][1]-yc) * (self.position[i, j][1]-yc) + (self.position[i, j][2]-zc) * (self.position[i, j][2]-zc))<r):
+            self.position[i, j][1] = yc + r*ti.cos(ti.atan2(self.position[i, j][2]-zc, self.position[i, j][1]-yc))
+            self.position[i, j][2] = zc + r*ti.sin(ti.atan2(self.position[i, j][2]-zc, self.position[i, j][1]-yc))
+            self.velocity[i, j] -= 1.5*ti.Vector.dot(self.velocity[i, j], self.position[i, j] - ti.Vector([self.position[i, j][0], yc, zc]))*(self.position[i, j] - ti.Vector([self.position[i, j][0], yc, zc]))/ti.Vector.norm(self.position[i, j] - ti.Vector([self.position[i, j][0], yc, zc]))
                 
