@@ -1,17 +1,17 @@
 import taichi as ti
 from Objects import *
 
-ti.init(arch=ti.cpu)
+ti.init(arch=ti.cuda, device_memory_GB=6.0)
 
-N = 64
+N = 128
 position = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
 velocity = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
 forces = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
-k_s = 5e4
+k_s = 8e4
 gamma_s = 3e3
-k_d = 5e4 / ti.sqrt(2)
+k_d = 8e4 / ti.sqrt(2)
 gamma_d = 3e3 / ti.sqrt(2)
-k_b = 5e4/2
+k_b = 8e4/2
 gamma_b = 3e3/2
 
 num_triangles = (N - 1) * (N - 1) * 2
@@ -62,7 +62,7 @@ def substep(h:ti.f32):
     system.ClearForces()
     system.ApplyGravity()
     system.ApplySpring(k_s, gamma_s, k_d, gamma_d, k_b, gamma_b, 1 / float(N))
-    system.ApplyDamping(6.0)
+    system.ApplyDamping(5.0)
     for i, j in ti.ndrange(N, N):
             system.position[i, j] += system.velocity[i, j]*h
             system.velocity[i, j] += system.forces[i, j]*h
@@ -88,8 +88,8 @@ for i in range(n):
     cylinder_center[i] = [1.5*i/n-0.3, 0.6, 0.55]
 
 while window.running:
-    for i in range(50):
-        substep(0.00008)
+    for i in range(40):
+        substep(0.00007)
     camera.position(0.5, 1.0, 3.0)
     camera.lookat(0.5, 1.0, 0.5)
     scene.set_camera(camera)
@@ -100,7 +100,7 @@ while window.running:
                indices=indices,
                per_vertex_color=colors,
                two_sided=True)
-    scene.particles(ball_center, radius=0.2*0.94, color=(0.5, 0.42, 0.8))
-    scene.particles(cylinder_center, radius=0.08*0.92, color=(0.4, 0.62, 0.7))
+    scene.particles(ball_center, radius=0.2*0.93, color=(0.5, 0.42, 0.8))
+    scene.particles(cylinder_center, radius=0.08*0.93, color=(0.4, 0.62, 0.7))
     canvas.scene(scene)
     window.show()

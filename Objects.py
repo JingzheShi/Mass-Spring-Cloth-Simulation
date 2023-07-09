@@ -59,7 +59,8 @@ class ClothSystem:
     def GroundCollision(self, i:int, j:int, ground:ti.f32):
         if(self.position[i, j][1] <= ground):
             self.position[i, j][1] = ground
-            self.velocity[i, j][1] -= 1.3*ti.Vector.dot(self.velocity[i, j], ti.Vector([0.0, 1.0, 0.0]))
+            #self.velocity[i, j][1] -= 1*ti.Vector.dot(self.velocity[i, j], ti.Vector([0.0, 1.0, 0.0]))
+            self.velocity[i, j] = ti.Vector([0.0,0.0,0.0])
 
     @ti.func
     def BallCollision(self, i:int, j:int, xc:ti.f32, yc:ti.f32, zc:ti.f32, r:ti.f32):
