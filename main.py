@@ -3,7 +3,7 @@ from Objects import *
 
 ti.init(arch=ti.cuda, device_memory_GB=6.0)
 
-N = 100
+N = 128
 position = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
 velocity = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
 forces = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
@@ -90,8 +90,8 @@ for i in range(n):
     cylinder_center[i] = [1.5*i/n-0.3, 0.6, 0.65]
 
 while window.running:
-    for i in range(60):
-        substep(0.00004)
+    for i in range(40):
+        substep(0.00007)
     camera.position(2.5, 1.0, 2.5)
     camera.lookat(0.5, 1.0, 0.5)
     scene.set_camera(camera)

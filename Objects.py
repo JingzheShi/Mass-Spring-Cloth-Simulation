@@ -7,7 +7,7 @@ class ClothSystem:
         self.position = position
         self.velocity = velocity
         self.forces = forces
-        self.ball_mass = 1e2
+        self.ball_mass = 1e4
         self.ball_radius = 0.2
         self.ball_center = ti.Vector.field(3, dtype=float, shape=(1,))
         self.ball_center[0] = ti.Vector([0.5, self.ball_radius, 0.4])
