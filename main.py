@@ -3,15 +3,15 @@ from Objects import *
 
 ti.init(arch=ti.cuda, device_memory_GB=6.0)
 
-N = 128
+N = 100
 position = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
 velocity = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
 forces = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
-k_s = 8e4
+k_s = 5e4
 gamma_s = 3e3
-k_d = 8e4 / ti.sqrt(2)
+k_d = 5e4 / ti.sqrt(2)
 gamma_d = 3e3 / ti.sqrt(2)
-k_b = 8e4/2
+k_b = 5e4/2
 gamma_b = 3e3/2
 
 num_triangles = (N - 1) * (N - 1) * 2
@@ -68,8 +68,10 @@ def substep(h:ti.f32):
             system.velocity[i, j] += system.forces[i, j]*h
             vertices[i * N + j] = system.position[i, j]
             system.GroundCollision(i,j,0.0)
-            system.BallCollision(i,j,0.5,0.6,0.55,0.2)
-            system.PoleCollision_x(i,j,0.6,0.55,0.08)
+            system.BallCollision(i,j,0.5,0.6,0.65,0.2)
+            system.PoleCollision_x(i,j,0.6,0.65,0.08)
+            system.FreeBallCollision(i,j,h)
+                
     #system.time += h
 
 window = ti.ui.Window("Taichi Cloth Simulation on GGUI", (1024, 1024),
@@ -80,17 +82,17 @@ scene = ti.ui.Scene()
 camera = ti.ui.Camera()
 
 ball_center = ti.Vector.field(3, dtype=float, shape=(1, ))
-ball_center[0] = [0.5, 0.6, 0.55]
+ball_center[0] = [0.5, 0.6, 0.65]
 
 n=2000
 cylinder_center = ti.Vector.field(3, dtype=float, shape=(n, ))
 for i in range(n):
-    cylinder_center[i] = [1.5*i/n-0.3, 0.6, 0.55]
+    cylinder_center[i] = [1.5*i/n-0.3, 0.6, 0.65]
 
 while window.running:
-    for i in range(40):
-        substep(0.00007)
-    camera.position(0.5, 1.0, 3.0)
+    for i in range(60):
+        substep(0.00004)
+    camera.position(2.5, 1.0, 2.5)
     camera.lookat(0.5, 1.0, 0.5)
     scene.set_camera(camera)
 
@@ -102,5 +104,6 @@ while window.running:
                two_sided=True)
     scene.particles(ball_center, radius=0.2*0.93, color=(0.5, 0.42, 0.8))
     scene.particles(cylinder_center, radius=0.08*0.93, color=(0.4, 0.62, 0.7))
+    scene.particles(system.ball_center, radius=system.ball_radius*0.93, color=(0.6, 0.32, 0.6))
     canvas.scene(scene)
     window.show()

@@ -7,6 +7,13 @@ class ClothSystem:
         self.position = position
         self.velocity = velocity
         self.forces = forces
+        self.ball_mass = 1e2
+        self.ball_radius = 0.2
+        self.ball_center = ti.Vector.field(3, dtype=float, shape=(1,))
+        self.ball_center[0] = ti.Vector([0.5, self.ball_radius, 0.4])
+        self.ball_v = ti.Vector.field(3, dtype=float, shape=(1,))
+        self.ball_v[0] = ti.Vector([0.0, 0.0, 0.0])
+        self.inertia = 2/5*self.ball_mass*self.ball_radius*self.ball_radius
         self.time = time
 
     @ti.func
@@ -67,7 +74,25 @@ class ClothSystem:
         center = ti.Vector([xc, yc, zc])
         if(ti.Vector.norm(self.position[i, j] - center) <= r):
             self.position[i, j] = center + r*(self.position[i, j] - center)/ti.Vector.norm(self.position[i, j] - center)
-            self.velocity[i, j] -= 1.5*ti.Vector.dot(self.velocity[i, j], self.position[i, j] - center)*(self.position[i, j] - center)/ti.Vector.norm(self.position[i, j] - center)
+            self.velocity[i, j] -= 1.0*ti.Vector.dot(self.velocity[i, j], self.position[i, j] - center)*(self.position[i, j] - center)/ti.Vector.norm(self.position[i, j] - center)
+            
+    
+    @ti.func
+    def FreeBallCollision(self, i:int, j:int, h:ti.f32):
+        impulse = ti.Vector([0.0, 0.0, 0.0])
+        if(ti.Vector.norm(self.position[i, j] - self.ball_center[0]) <= self.ball_radius):
+            R = self.position[i, j] - self.ball_center[0]
+            r  = self.position[i, j] - ti.Vector([self.ball_center[0][0], 0.0, self.ball_center[0][2]])
+            v2 = self.velocity[i, j]
+            v1 = self.ball_v[0]
+            impulse = -(ti.Vector.dot(v2, R) - ti.Vector.dot(v1, R)) / (R.norm() + 1 / self.inertia * (ti.Vector.dot(r,r)*R.norm() - ti.Vector.dot(R,r)**2 / R.norm()))
+            self.velocity[i, j] += impulse * R / R.norm()
+            self.ball_center[0] += self.ball_v[0] * h
+            moment_of_impulse = ti.Vector.cross(ti.Vector([-self.ball_center[0][0]+self.position[i,j][0],self.position[i,j][1],-self.ball_center[0][2]+self.position[i,j][2]]),impulse)
+            delta_omega = moment_of_impulse / self.inertia
+            self.ball_v[0] += ti.Vector.cross(delta_omega, ti.Vector([0.0, self.ball_radius, 0.0]))
+            self.ball_v[0][1] = 0.0
+            self.ball_center[0][1] = self.ball_radius
 
     @ti.func
     def PoleCollision_z(self, i:int, j:int, xc:ti.f32, yc:ti.f32, r:ti.f32):
