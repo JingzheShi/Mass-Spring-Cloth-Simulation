@@ -23,7 +23,7 @@ colors = ti.Vector.field(3, dtype=float, shape=N * N)
 @ti.kernel
 def initialize():
     for i, j in ti.ndrange(N, N):
-            position[i, j] = ti.Vector([i / float(N) + ti.random()*0.005, 2.0 + ti.random()*0.005, j/float(N) + ti.random()*0.005])
+            position[i, j] = ti.Vector([i / float(N) + ti.random()*0.02, 2.0 + ti.random()*0.02, j/float(N) + ti.random()*0.02])
             velocity[i, j] = ti.Vector([0.0, 0.0, 0.0])
             forces[i, j] = ti.Vector([0.0, 0.0, 0.0])
 
