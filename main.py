@@ -1,9 +1,10 @@
 import taichi as ti
 from Objects import *
+from Physics import *
+ti.init(arch = ti.cpu)
+# ti.init(arch=ti.cuda, device_memory_GB=2.0)
 
-ti.init(arch=ti.cuda, device_memory_GB=6.0)
-
-N = 128
+N = 20
 position = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
 velocity = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
 forces = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
@@ -13,6 +14,7 @@ k_d = 5e4 / ti.sqrt(2)
 gamma_d = 3e3 / ti.sqrt(2)
 k_b = 5e4/2
 gamma_b = 3e3/2
+damp = 5.0
 
 num_triangles = (N - 1) * (N - 1) * 2
 indices = ti.field(int, shape=num_triangles * 3)
@@ -55,24 +57,31 @@ initialize()
 initialize_mesh_indices()
 initialize_vertices()
 
-system = ClothSystem(N, position, velocity, forces)
+
+
+
+clothSystem = ClothSystem(N, position, velocity, forces, k_s,
+                     gamma_s,k_d,gamma_d,k_b,gamma_b,damp)
+freeBallOnGround = FreeBallOnGround()
+fixedBall = FixedBall()
+pole_x = Pole_x(0.6,0.65,0.08)
+ground = Ground(0.0)
+
+clearForceSystem = ClearForcesSystem([clothSystem])
+internalPhysicsSystem = InternalPhysicsSystem([clothSystem])
+gravitySystem = GravitySystem([clothSystem])
+collideSystem = CollideSystem([clothSystem,fixedBall,ground,pole_x,freeBallOnGround])
+kinematicsSystem = KinematicsSystem([clothSystem,freeBallOnGround])
+
+
+physicsSystem = TotalPhysicsSystem(clearForceSystem,kinematicsSystem,collideSystem,[gravitySystem,internalPhysicsSystem],h=0.00007)
+
+
 
 @ti.kernel
-def substep(h:ti.f32):
-    system.ClearForces()
-    system.ApplyGravity()
-    system.ApplySpring(k_s, gamma_s, k_d, gamma_d, k_b, gamma_b, 1 / float(N))
-    system.ApplyDamping(5.0)
-    for i, j in ti.ndrange(N, N):
-            system.position[i, j] += system.velocity[i, j]*h
-            system.velocity[i, j] += system.forces[i, j]*h
-            vertices[i * N + j] = system.position[i, j]
-            system.GroundCollision(i,j,0.0)
-            system.BallCollision(i,j,0.5,0.6,0.65,0.2)
-            system.PoleCollision_x(i,j,0.6,0.65,0.08)
-            system.FreeBallCollision(i,j,h)
-                
-    #system.time += h
+def substep():
+    physicsSystem.evolve()
+
 
 window = ti.ui.Window("Taichi Cloth Simulation on GGUI", (1024, 1024),
                       vsync=True)
@@ -81,29 +90,23 @@ canvas.set_background_color((1, 1, 1))
 scene = ti.ui.Scene()
 camera = ti.ui.Camera()
 
-ball_center = ti.Vector.field(3, dtype=float, shape=(1, ))
-ball_center[0] = [0.5, 0.6, 0.65]
 
-n=2000
-cylinder_center = ti.Vector.field(3, dtype=float, shape=(n, ))
-for i in range(n):
-    cylinder_center[i] = [1.5*i/n-0.3, 0.6, 0.65]
 
 while window.running:
     for i in range(40):
-        substep(0.00007)
+        substep()
     camera.position(2.5, 1.0, 2.5)
     camera.lookat(0.5, 1.0, 0.5)
     scene.set_camera(camera)
 
     scene.point_light(pos=(0, 1, 2), color=(1, 1, 1))
     scene.ambient_light((0.5, 0.5, 0.5))
-    scene.mesh(vertices,
+    scene.mesh(clothSystem.vertices,
                indices=indices,
                per_vertex_color=colors,
                two_sided=True)
-    scene.particles(ball_center, radius=0.2*0.93, color=(0.5, 0.42, 0.8))
-    scene.particles(cylinder_center, radius=0.08*0.93, color=(0.4, 0.62, 0.7))
-    scene.particles(system.ball_center, radius=system.ball_radius*0.93, color=(0.6, 0.32, 0.6))
+    scene.particles(fixedBall.ball_center, radius=fixedBall.ball_radius*0.93, color=(0.5, 0.42, 0.8))
+    scene.particles(pole_x.cylinder_center, radius=pole_x.r*0.93, color=(0.4, 0.62, 0.7))
+    scene.particles(freeBallOnGround.ball_center, radius=freeBallOnGround.ball_radius*0.93, color=(0.6, 0.32, 0.6))
     canvas.scene(scene)
     window.show()
