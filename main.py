@@ -4,7 +4,7 @@ from Physics import *
 ti.init(arch = ti.cpu)
 # ti.init(arch=ti.cuda, device_memory_GB=2.0)
 
-N = 20
+N = 128
 position = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
 velocity = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
 forces = ti.Vector.field(3, dtype=ti.f32, shape=(N, N))
